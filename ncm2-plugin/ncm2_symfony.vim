@@ -1,1 +1,1 @@
-call ncm2_bufword#init()
+call ncm2_symfony#init()
