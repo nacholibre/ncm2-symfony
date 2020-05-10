@@ -15,6 +15,8 @@ tested etc.
 # Install
 ## VimPlug
 ```
-Plug 'nacholibre/ncm2-symfony'
+Plug 'nacholibre/ncm2-symfony', {'tag': '*'}
 ```
 and run `:PlugInstall`
+
+`{'tag': '*'}` this means the latest tagged release
