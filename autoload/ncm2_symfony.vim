@@ -11,7 +11,7 @@ let g:ncm2_symfony#proc = yarp#py3({
 let g:ncm2_symfony#source = extend(get(g:, 'ncm2_symfony#source', {}), {
             \ 'name': 'symfony',
             \ 'ready': 0,
-            \ 'priority': 5,
+            \ 'priority': 8,
             \ 'mark': 'b',
             \ 'on_complete': 'ncm2_symfony#on_complete',
             \ 'on_warmup': 'ncm2_symfony#on_warmup',
@@ -26,6 +26,8 @@ func! ncm2_symfony#on_warmup(ctx)
 endfunc
 
 func! ncm2_symfony#on_complete(ctx)
-    call g:ncm2_symfony#proc.try_notify('on_complete', a:ctx)
+    call g:ncm2_symfony#proc.try_notify('on_complete',
+                \ a:ctx,
+                \ expand('%:e'),
+                \ getline(1, '$'))
 endfunc
-

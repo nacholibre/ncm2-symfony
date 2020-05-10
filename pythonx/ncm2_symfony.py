@@ -1,69 +1,82 @@
 # -*- coding: utf-8 -*-
 
 import vim
-from ncm2 import Ncm2Source, getLogger
+from ncm2 import Ncm2Source, getLogger, Popen
 import re
 from copy import deepcopy
+import subprocess
+import json
+import os
 
 logger = getLogger(__name__)
 
 
 class Source(Ncm2Source):
 
-    def on_complete(self, ctx):
-        pat = re.compile(ctx['word_pattern'])
-        lines = 1000
+    def __init__(self, nvim):
+        super(Source, self).__init__(nvim)
+        self.completion_timeout = self.nvim.eval('g:ncm2_phpactor_timeout') or 5
+
+    def on_complete(self, ctx, extension, lines):
+        if not extension:
+            extension = '0'
+
+        matches = []
+
+        src = "\n".join(lines)
+        src = self.get_src(src, ctx)
 
         lnum = ctx['lnum']
-        ccol = ctx['ccol']
-        b = ctx['base']
 
-        bufnr = ctx['bufnr']
-        buf = vim.buffers[bufnr]
+        # use byte addressing
+        bcol = ctx['bcol']
+        src = src.encode()
+
+        pos = self.lccol2pos(lnum, bcol, src)
+
+        # get the php autocomplete bin path
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        autocomplete_bin_path = dir_path + '/../bin/app.php'
+
+        args = ['php', autocomplete_bin_path, 'complete', '-d', os.getcwd(), '-p', str(pos), '-e', extension]
+        #args = ['php', autocomplete_bin_path, '-d', os.getcwd(), str(pos)]
+        proc = Popen(args=args,
+                     stdin=subprocess.PIPE,
+                     stdout=subprocess.PIPE,
+                     stderr=subprocess.DEVNULL)
+
+        result, errs = proc.communicate(src, timeout=self.completion_timeout)
+
+        result = result.decode()
+
+        logger.debug("extension: %s", extension)
+
+        logger.debug("args: %s", args)
+        #logger.debug("result: [%s]", result)
+
+        #logger.debug(result)
+        result = json.loads(result)
+
+        if not result or not result.get('suggestions', None):
+            logger.debug('No matches found...abort')
+            return
 
         matches = []
+        for e in result['suggestions']:
+            shortDescription = e['short_description']
+            word = e['name']
+            #t = e['type']
 
-        matcher = self.matcher_get(ctx)
+            #item = {'word': word, 'menu': menu, 'info': menu}
+            item = dict(word=word, menu=shortDescription, info=shortDescription)
 
-        matches = []
-        seen = {}
+            #snip_args = 'args'
+            #ph0 = '${%s:%s}' % ('num', 'txt')
 
-        def add_match(bufnr, re_match, lnum):
-            w = re_match.group()
-            if w in seen:
-                item = seen[w]
-                ud = item['user_data']
-            else:
-                item = self.match_formalize(ctx, w)
-                if not matcher(b, item):
-                    return
-                seen[w] = item
-                ud = item['user_data']
-                ud['word'] = w
-                matches.append(item)
+            #snippet = '%s(%s)%s' % (word, snip_args, ph0)
 
-        beginl = max(lnum - 1 - int(lines / 2), 0)
-        endl = lnum - 1 + int(lines / 2)
-        stepl = 1000
-
-        for lidx in range(beginl, endl, stepl):
-            lines = buf[lidx: min(lidx + stepl, endl)]
-
-            # convert 0 base to 1 base
-            for i, line in enumerate(lines):
-                scan_lnum = lidx + i + 1
-                if scan_lnum == lnum:
-                    for word in pat.finditer(line):
-                        span = word.span()
-
-                        # filter-out the word at current cursor
-                        if (ccol - 1 >= span[0]) and (ccol - 1 <= span[1]):
-                            continue
-
-                        add_match(bufnr, word, scan_lnum)
-                else:
-                    for word in pat.finditer(line):
-                        add_match(bufnr, word, scan_lnum)
+            #item['user_data'] = {'snippet': snippet, 'is_snippet': 1}
+            matches.append(item)
 
         self.complete(ctx, ctx['startccol'], matches)
 

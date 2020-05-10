@@ -1,0 +1,14 @@
+{
+    "name": "nacholibre/ncm2-symfony",
+    "authors": [
+        {
+            "name": "Yoan Arnaudov",
+            "email": "yoan.arnaudov@gmail.com"
+        }
+    ],
+    "require": {
+        "symfony/console": "^5.0",
+        "symfony/process": "^5.0",
+        "symfony/filesystem": "^5.0"
+    }
+}
