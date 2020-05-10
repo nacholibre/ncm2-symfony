@@ -15,7 +15,7 @@ tested etc.
 # Install
 ## VimPlug
 ```
-Plug 'nacholibre/ncm2-symfony', {'tag': '*'}
+Plug 'nacholibre/ncm2-symfony', {'do': 'composer install', 'tag': '*'}
 ```
 and run `:PlugInstall`
 
