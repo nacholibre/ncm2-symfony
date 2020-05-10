@@ -108,7 +108,7 @@ class AutocompleteCommand extends Command
             $lines .= $line;
         }
 
-        if ($extension == 'php') {
+        if ($extension == 'php' or $extension == 'twig') {
             $paths = $this->getRoutes($directory);
             foreach($paths as $routeName => $data) {
                 $autocompleteResponse[] = [
